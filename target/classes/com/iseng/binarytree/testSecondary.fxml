@@ -23,6 +23,7 @@
                   <Button contentDisplay="CENTER" layoutX="426.0" layoutY="53.0" mnemonicParsing="false" onAction="#clearingVbox" prefHeight="25.0" prefWidth="71.0" text="Clear Log" />
                   <CheckBox fx:id="isAsyncON" layoutX="459.0" layoutY="9.0" mnemonicParsing="false" text="Download simultaneously?" />
                   <CheckBox fx:id="isPlaylist" layoutX="377.0" layoutY="9.0" mnemonicParsing="false" text="Is playlist?" />
+                  <Label layoutX="329.0" layoutY="9.0" onMouseClicked="#showSetting" text="Setting" textFill="#4400ff" />
                </children>
             </AnchorPane>
             <ScrollPane layoutY="83.0" prefHeight="397.0" prefWidth="640.0">
