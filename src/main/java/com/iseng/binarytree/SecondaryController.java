@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+
 import com.iseng.binarytree.youtube.*;
 
 import javafx.application.Platform;
@@ -13,6 +14,7 @@ import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.control.Alert.AlertType;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
@@ -40,6 +42,8 @@ public class SecondaryController {
         //Save.setText(SDICT);
     } 
     //END DEBUG
+
+    private Settings settings = Settings.getSettings();
     private int howManyHasBeenDownloaded = 0;
     private YoutubeDLRequest youtubeRequest;
     
@@ -342,6 +346,13 @@ public class SecondaryController {
         Thread e = new Thread(downloadYoutube);
         e.setName("youtubeDownload");
         e.start();
+    }
+
+    @FXML
+    void showSetting(MouseEvent eventHandler) throws IOException{
+        SettingCustomDialog settingCustomDialog = new SettingCustomDialog(Window.getWindows().stream().filter(Window::isShowing).findFirst().orElse(null));
+        settingCustomDialog.showAndWait().ifPresent(result -> settings = result);
+        settings.isMP3();
     }
 
     @FXML
