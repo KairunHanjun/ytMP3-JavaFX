@@ -8,6 +8,7 @@ import javafx.stage.Stage;
 
 import java.io.IOException;
 
+
 /**
  * JavaFX App
  */
@@ -18,7 +19,11 @@ public class App extends Application {
     @Override
     public void start(Stage stage) throws IOException {
         scene = new Scene(loadFXML("primary"), 640, 480);
-        stage.setTitle("BINARY TREE");
+        if(AdminChecker.IS_RUNNING_AS_ADMINISTRATOR){
+            stage.setTitle("BINARY TREE (ADMIN)");
+        }else{
+            stage.setTitle("BINARY TREE");
+        }
         stage.setMaximized(false);
         stage.setResizable(false);
         stage.setScene(scene);

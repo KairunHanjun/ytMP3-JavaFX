@@ -4,8 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iseng.binarytree.mapper.VideoFormat;
 import com.iseng.binarytree.mapper.VideoInfo;
 import com.iseng.binarytree.mapper.VideoThumbnail;
-import com.iseng.binarytree.utils.StreamGobbler;
-import com.iseng.binarytree.utils.StreamProcessExtractor;
+import com.iseng.binarytree.utils.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -98,6 +97,76 @@ public class YoutubeDL {
         } catch (InterruptedException e) {
 
             // process exited for some reason
+            throw new YoutubeDLException(e);
+        }
+
+        String out = outBuffer.toString();
+        String err = errBuffer.toString();
+
+        if(exitCode > 0) {
+            throw new YoutubeDLException(err);
+        }
+
+        int elapsedTime = (int) ((System.nanoTime() - startTime) / 1000000);
+
+        youtubeDLResponse = new YoutubeDLResponse(command, options, directory, exitCode , elapsedTime, out, err);
+
+        return youtubeDLResponse;
+    }
+
+     /**
+     * Execute youtube-dl request for threading Task
+     * @param request request object
+     * @param callback callback
+     * @param iterator iterator Thread
+     * @return response object
+     * @throws YoutubeDLException
+     */
+    public static YoutubeDLResponse execute(YoutubeDLRequest request, int iterator, boolean allowInterrupt, DownloadProgressCallback callback) throws YoutubeDLException {
+
+        String command = buildCommand(request.buildOptions());
+        String directory = request.getDirectory();
+        Map<String, String> options = request.getOption();
+
+        YoutubeDLResponse youtubeDLResponse;
+        Process process;
+        int exitCode = 1;
+        StringBuffer outBuffer = new StringBuffer(); //stdout
+        StringBuffer errBuffer = new StringBuffer(); //stderr
+        long startTime = System.nanoTime();
+
+        String[] split = command.split(" ");
+
+        ProcessBuilder processBuilder = new ProcessBuilder(split);
+
+        // Define directory if one is passed
+        if(directory != null)
+            processBuilder.directory(new File(directory));
+
+        try {
+            process = processBuilder.start();
+        } catch (IOException e) {
+            throw new YoutubeDLException(e);
+        }
+
+        InputStream outStream = process.getInputStream();
+        InputStream errStream = process.getErrorStream();
+
+        StreamProcessExtractorCancelable stdOutProcessor = new StreamProcessExtractorCancelable(iterator,outBuffer, outStream, callback);
+        StreamGobblerCancelable stdErrProcessor = new StreamGobblerCancelable(iterator,errBuffer, errStream);
+
+        try {
+            stdErrProcessor.join();
+            stdOutProcessor.join();
+            exitCode = process.waitFor();
+        } catch (InterruptedException e) {
+            if(allowInterrupt){
+                stdErrProcessor.cancel();
+                stdOutProcessor.cancel();
+                process.descendants().forEach((ProcessHandle d) -> d.destroy());
+                process.destroy();
+                throw new YoutubeDLException(e);
+            }
             throw new YoutubeDLException(e);
         }
 

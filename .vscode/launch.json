@@ -6,6 +6,13 @@
     "configurations": [
         {
             "type": "java",
+            "name": "Launch AppHidden",
+            "request": "launch",
+            "mainClass": "com.iseng.binarytree/com.iseng.binarytree.AppHidden",
+            "projectName": "binarytree"
+        },
+        {
+            "type": "java",
             "name": "Launch App",
             "request": "launch",
             "mainClass": "com.iseng.binarytree.App",

@@ -45,9 +45,39 @@ public class SecondaryController {
 
     private Settings settings = Settings.getSettings();
     private int howManyHasBeenDownloaded = 0;
-    private YoutubeDLRequest youtubeRequest;
-    
-    private void prepareDownload(String Title){
+    List<Task<Void>> listWorker = null;
+    Task<Void> downloadWrapper = null;
+
+    private YoutubeDLRequest setOptionYoutubeRequest(final String url, final String Where, final boolean isMP4, final boolean isMP3){
+        YoutubeDLRequest youtubeRequest = new YoutubeDLRequest(url, Where);
+        youtubeRequest.setOption("output", "%(title)s.%(ext)s");
+        youtubeRequest.setOption("retries", 10);
+        youtubeRequest.setOption("no-warnings");
+        if(isMP3){
+            youtubeRequest.setOption("extract-audio");
+            youtubeRequest.setOption("audio-format", "mp3");
+        }else if(isMP4){
+            switch (settings.getQualityVideo()) {
+                case "Lowest Quality":{
+                    youtubeRequest.setOption("format", "\"bestvideo[height<=240][ext=mp4]+bestaudio[ext=m4a]\"");
+                    break;
+                }
+                case "Medium Quality":{
+                    youtubeRequest.setOption("format", "\"bestvideo[height<=480][ext=mp4][filesize<70M]+bestaudio[ext=m4a]\"");
+                    break;
+                }
+                case "Highest Quality":{
+                    youtubeRequest.setOption("format", "\"bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]\"");
+                    break;
+                }
+                default:
+                    break;
+            }
+        }
+        return youtubeRequest;
+    }
+
+    private void prepareDownload(String Title, int iterator){
         //New Anchorpanel has been born
         AnchorPane newAnchor = new AnchorPane();
         newAnchor.setPrefSize(Region.USE_COMPUTED_SIZE, Region.USE_COMPUTED_SIZE);
@@ -55,12 +85,13 @@ public class SecondaryController {
 
         //New Title has been born
         Label newTitle = new Label(Title);
+        newTitle.maxHeight(600);
         newAnchor.getChildren().add(newTitle);
 
         //Born the triples Node
         ProgressBar newProgressBar = new ProgressBar(0);
         Label newStatus = new Label("Preparing");
-        Button newButton = new Button("CANCEL");
+        Button newButton = new Button("CANCEL ("+ iterator +")");
 
         //Child one, name progressbar
         newProgressBar.setPrefWidth(450);
@@ -80,7 +111,8 @@ public class SecondaryController {
         newButton.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event){
-                //TODO: Cancel Download Code Contruction
+                int index = Integer.parseInt(newButton.getText().substring(8, 9));
+                listWorker.get(index).cancel(true);
             }
         });
         newAnchor.getChildren().add(newButton);
@@ -103,110 +135,120 @@ public class SecondaryController {
                 final YoutubeListInfo newListInfo = super.getValue();
                 for(int i = 0; i < newListInfo.urls.size(); i++){
                     final int i_ = i;
-                    Platform.runLater(() ->prepareDownload(newListInfo.videoInfo.get(i_).title));
+                    Platform.runLater(() ->prepareDownload(newListInfo.videoInfo.get(i_).title, i_));
                 }
-
                 //Here task to download
-                Task<Void> downloadWrapper = new Task<Void>() {
+                downloadWrapper = new Task<Void>() {
                     @Override
                     protected Void call() throws IOException, YoutubeDLException{
-                        try{
-                            for(int i_ = 0; i_ < newListInfo.urls.size(); i_+=5){ 
-                                List<Task<Void>> listWorker = new ArrayList<Task<Void>>();
-                                boolean stateFinish[] = new boolean[5];
-                                boolean throwingCrap[] = new boolean[5];           
-                                for(int j = 0; j < 5; j++){
-                                    final int j_=j;
-                                    final int i__ = i_;
-                                    howManyHasBeenDownloaded++;
-                                    final int i = howManyHasBeenDownloaded-1;
-                                    System.out.println("Itteration: i: "+i_+" j: "+j);
-                                    System.out.println("URLS: "+newListInfo.urls.get(i_+j));
-                                    System.out.println("TITLE: "+newListInfo.videoInfo.get(i_+j).title);
-                                    Task<Void> toDownload = new Task<Void>() {
-                                        @Override
-                                        protected Void call() throws RuntimeException, IOException {
-                                            //Perform download youtube video
-                                            Platform.runLater(() -> ((Label)((AnchorPane)LOG.getChildren().get(i)).getChildren().get(2)).setText("Running"));
-                                            YoutubeDLRequest youtubeRequest = new YoutubeDLRequest(newListInfo.urls.get(i__+j_), Where);
-                                            youtubeRequest.setOption("output", "%(title)s.%(ext)s");
-                                            youtubeRequest.setOption("retries", 10);
-                                            youtubeRequest.setOption("extract-audio");
-                                            youtubeRequest.setOption("audio-format", "mp3");
-                                            youtubeRequest.setOption("no-warnings");  
-                                            try {
-                                            YoutubeDLResponse Debug = YoutubeDL.execute(youtubeRequest, new DownloadProgressCallback() {
-                                                    @Override
-                                                    public void onProgressUpdate(float progress, long etaInSeconds) {
-                                                        Platform.runLater(() -> {
-                                                            ((ProgressBar)((AnchorPane)LOG.getChildren().get(i)).getChildren().get(1)).setProgress((progress/100));
-                                                            if(progress == 100.0)
-                                                                Platform.runLater(() -> ((Label)((AnchorPane)LOG.getChildren().get(i)).getChildren().get(2)).setText("Finishing"));
-                                                        });
-                                                    }});
-                                            System.out.println(Debug.getOut());
-                                            } catch (YoutubeDLException e2) {       
-                                                Platform.runLater(() -> {
-                                                    ((Label)((AnchorPane)LOG.getChildren().get(i)).getChildren().get(2)).setText("Failed");
-                                                    ((ProgressBar)((AnchorPane)LOG.getChildren().get(i)).getChildren().get(1)).setProgress(1);
-                                                    ((Label)((AnchorPane)LOG.getChildren().get(i)).getChildren().get(0)).setText(((Label)((AnchorPane)LOG.getChildren().get(i)).getChildren().get(0)).getText()+" "+e2.getMessage().substring(e2.getMessage().lastIndexOf(":"), e2.getMessage().lastIndexOf(".")));
-                                                    throwingCrap[j_] = true;
-                                                });
-                                            }
+                        if(settings.getThread() == -1) {
+                            settings.setThread(newListInfo.urls.size());
+                        }else if(settings.getThread() > newListInfo.urls.size()){
+                            settings.setThread(newListInfo.urls.size());
+                        }
+                        
+                        for(int i_ = 0; i_ < newListInfo.urls.size() && !isCancelled(); i_+=settings.getThread()){ 
+                            listWorker = new ArrayList<Task<Void>>(settings.getThread()+1);
+                            boolean stateFinish[] = new boolean[settings.getThread()];
+                            boolean throwingCrap[] = new boolean[settings.getThread()];           
+                            for(int j = 0; j < settings.getThread(); j++){
+                                final int j_=j;
+                                final int i__ = i_;
+                                howManyHasBeenDownloaded++;
+                                final int i = howManyHasBeenDownloaded-1;
+                                Task<Void> toDownload = new Task<Void>() {
+                                    @Override
+                                    protected Void call() throws RuntimeException, IOException {
+                                        //Perform download youtube video
+                                        
+                                        Platform.runLater(() -> {
+                                            try{
+                                                ((Label)((AnchorPane)LOG.getChildren().get(i)).getChildren().get(2)).setText("Running");}
+                                            catch(IndexOutOfBoundsException e){
+                                                throwingCrap[j_] = true;}});
+                                        if(throwingCrap[j_] || isCancelled()) 
                                             return null;
-                                        }
-
-                                        @Override protected void succeeded(){
-                                            super.succeeded();
-                                            if(throwingCrap[j_]) {stateFinish[j_] = true; return;}
+                                        try {
+                                            YoutubeDL.execute(setOptionYoutubeRequest(newListInfo.urls.get(i__+j_), Where, settings.isMP4(), settings.isMP3()), i, true, new DownloadProgressCallback() {
+                                                @Override
+                                                public void onProgressUpdate(float progress, long etaInSeconds) {
+                                                    Platform.runLater(() -> {
+                                                        if(downloadWrapper.isCancelled())listWorker.get(i).cancel();
+                                                        ((ProgressBar)((AnchorPane)LOG.getChildren().get(i)).getChildren().get(1)).setProgress((progress/100));
+                                                        ((Label)((AnchorPane)LOG.getChildren().get(i)).getChildren().get(2)).setText(String.valueOf(progress)+"%");
+                                                        if(progress == 100.0)
+                                                            ((Label)((AnchorPane)LOG.getChildren().get(i)).getChildren().get(2)).setText("Finishing");
+                                                    });
+                                                }});
+                                        } catch (YoutubeDLException e2) {       
                                             Platform.runLater(() -> {
+                                                if(!isCancelled()){
+                                                    ((Label)((AnchorPane)LOG.getChildren().get(i)).getChildren().get(2)).setText("Failed");
+                                                }else{
+                                                    ((Label)((AnchorPane)LOG.getChildren().get(i)).getChildren().get(2)).setText("Cancelled");
+                                                    stateFinish[j_] = true;
+                                                    ThreadInterrupt.InterruptThread(ThreadInterrupt.getThreadByName("StreamProcessExtractorCancelable ("+i+")"));
+                                                    ThreadInterrupt.InterruptThread(ThreadInterrupt.getThreadByName("StreamGobblerCancelable ("+i+")"));
+                                                    //TODO: Please implement delete trash if the download is cancelled;
+                                                }
                                                 ((ProgressBar)((AnchorPane)LOG.getChildren().get(i)).getChildren().get(1)).setProgress(1);
-                                                ((Label)((AnchorPane)LOG.getChildren().get(i)).getChildren().get(2)).setText("Finish");
+                                                ((Label)((AnchorPane)LOG.getChildren().get(i)).getChildren().get(0)).setText(((Label)((AnchorPane)LOG.getChildren().get(i)).getChildren().get(0)).getText()+" "+e2.getMessage().substring(e2.getMessage().lastIndexOf(":"), e2.getMessage().lastIndexOf(".")));
+                                                throwingCrap[j_] = true;
                                             });
-                                            stateFinish[j_] = true;
                                         }
+                                        return null;
+                                    }
 
-                                        @Override protected void failed(){
-                                            super.failed();
-                                            stateFinish[j_] = true;
-                                        }
-                                    };
-                                    listWorker.add(toDownload);
-                                }
-                                for (Task<Void> worker : listWorker) new Thread(worker).start();
-                                for (int e = 0; e < 5; e++) {
-                                    while(!stateFinish[e]){}
-                                }
+                                    @Override protected void succeeded(){
+                                        super.succeeded();
+                                        if(throwingCrap[j_]) {stateFinish[j_] = true; return;}
+                                        Platform.runLater(() -> {
+                                            ((ProgressBar)((AnchorPane)LOG.getChildren().get(i)).getChildren().get(1)).setProgress(1);
+                                            ((Label)((AnchorPane)LOG.getChildren().get(i)).getChildren().get(2)).setText("Finish");
+                                        });
+                                        stateFinish[j_] = true;
+                                    }
+                                };
+                                listWorker.add(toDownload);
                             }
-                        }catch (IndexOutOfBoundsException eq){}
+                            for (int i = 0; i < listWorker.size(); i++) {
+                                Thread t = new Thread(listWorker.get(i));
+                                t.setName("Worker ("+ i +")");
+                                t.start();
+                            }
+                            for(int i = 0; i < settings.getThread(); i++) while(!stateFinish[i]){if(isCancelled())break;};
+                            
+                        }
+                        Platform.runLater(() -> DownloadButton.setDisable(false));
                         return null;
                     }};
-                new Thread(downloadWrapper).start();
+                Thread thread = new Thread(downloadWrapper);
+                thread.setName("downloadWrapper");
+                thread.start();
             }
         };
-        new Thread(listVideo).start(); 
+        Thread threads = new Thread(listVideo);
+        threads.setName("listVideo");
+        threads.start(); 
     }
 
     //For Single Url Asynchronous Download
     private void asyncDownload(String Url, String Where){
-        try {prepareDownload(YoutubeDL.getVideoInfo(Url).title);}
-        catch (YoutubeDLException e) {}
-        Task<Boolean> downloadYoutube = new Task<Boolean>() {
+        
+        downloadWrapper = new Task<Void>() {
             @Override
-            protected Boolean call() {
+            protected Void call() {
                 howManyHasBeenDownloaded++;
                 final int i = howManyHasBeenDownloaded-1;
-                Platform.runLater(() -> ((Label)((AnchorPane)LOG.getChildren().get(i)).getChildren().get(2)).setText("Running"));
-                //Perform download youtube video
-                youtubeRequest = new YoutubeDLRequest(Url, Where);
-                youtubeRequest.setOption("output", "%(title)s.%(ext)s");
-                youtubeRequest.setOption("retries", 10);
-                youtubeRequest.setOption("extract-audio");
-                youtubeRequest.setOption("audio-format", "mp3");
-                youtubeRequest.setOption("ignore-errors");
-                youtubeRequest.setOption("no-warnings");  
+
+                Platform.runLater(() -> {
+                    try {prepareDownload(YoutubeDL.getVideoInfo(Url).title, i);}
+                    catch (YoutubeDLException e) {}
+                    ((Label)((AnchorPane)LOG.getChildren().get(i)).getChildren().get(2)).setText("Running");
+                });
+                //Perform download youtube video 
                 try {
-                    YoutubeDL.execute(youtubeRequest, new DownloadProgressCallback() {
+                    YoutubeDL.execute(setOptionYoutubeRequest(Url, Where, settings.isMP4(), settings.isMP3()), new DownloadProgressCallback() {
                         @Override
                         public void onProgressUpdate(float progress, long etaInSeconds) {
                             Platform.runLater(() -> {
@@ -227,10 +269,11 @@ public class SecondaryController {
                 Platform.runLater(() -> {
                     ((Label)((AnchorPane)LOG.getChildren().get(i)).getChildren().get(2)).setText("Finish");
                     disableWhileDownloading.setDisable(isCancelled());
+                    DownloadButton.setDisable(false);
                 });
-                return true;
+                return null;
             }};
-        Thread e = new Thread(downloadYoutube);
+        Thread e = new Thread(downloadWrapper);
         e.setName("youtubeDownload");
         e.start();
     }
@@ -249,19 +292,15 @@ public class SecondaryController {
                             //Perform download youtube video
                             howManyHasBeenDownloaded++;
                             final int i_ = howManyHasBeenDownloaded-1;
-                            youtubeRequest = new YoutubeDLRequest(finalshit.urls.get(i_), Where);
-                            Platform.runLater(() ->prepareDownload(finalshit.videoInfo.get(i_).title));
-                            Platform.runLater(() -> ((Label)((AnchorPane)LOG.getChildren().get(i_)).getChildren().get(2)).setText("Running"));
-                            youtubeRequest.setOption("output", "%(title)s.%(ext)s");
-                            youtubeRequest.setOption("retries", 10);
-                            youtubeRequest.setOption("extract-audio");
-                            youtubeRequest.setOption("audio-format", "mp3");  
-                            youtubeRequest.setOption("no-warnings");
+                            Platform.runLater(() -> {
+                                prepareDownload(finalshit.videoInfo.get(i_).title, i_);
+                                ((Label)((AnchorPane)LOG.getChildren().get(i_)).getChildren().get(2)).setText("Running");});
                             try{
-                                YoutubeDL.execute(youtubeRequest, new DownloadProgressCallback() {
+                                YoutubeDL.execute(setOptionYoutubeRequest(finalshit.urls.get(i_), Where, settings.isMP4(), settings.isMP3()), new DownloadProgressCallback() {
                                     @Override
                                     public void onProgressUpdate(float progress, long etaInSeconds) {
                                         Platform.runLater(() -> {
+                                            ((Label)((AnchorPane)LOG.getChildren().get(i_)).getChildren().get(2)).setText(String.valueOf(progress)+"%");
                                             ((ProgressBar)((AnchorPane)LOG.getChildren().get(i_)).getChildren().get(1)).setProgress((progress/100));
                                             if(progress == 100.0) ((Label)((AnchorPane)LOG.getChildren().get(i_)).getChildren().get(2)).setText("Finishing");
                                         });
@@ -299,27 +338,23 @@ public class SecondaryController {
     //For Single Url Synchorous Download
     private void syncDownload(String Url, String Where){
         disableWhileDownloading.setDisable(true);
-        try {prepareDownload(YoutubeDL.getVideoInfo(Url).title);}
-        catch (YoutubeDLException e1) {prepareDownload("ERROR: Cannot get title youtube");}
+        
         Task<Boolean> downloadYoutube = new Task<Boolean>() {
             @Override
             protected Boolean call() {
                 howManyHasBeenDownloaded++;
                 final int i = howManyHasBeenDownloaded-1;
                 //Perform download youtube video        
-                Platform.runLater(() -> ((Label)((AnchorPane)LOG.getChildren().get(i)).getChildren().get(2)).setText("Running"));
-                youtubeRequest = new YoutubeDLRequest(Url, Where);
-                youtubeRequest.setOption("output", "%(title)s.%(ext)s");
-                youtubeRequest.setOption("retries", 10);
-                youtubeRequest.setOption("extract-audio");
-                youtubeRequest.setOption("audio-format", "mp3");
-                youtubeRequest.setOption("ignore-errors");
-                youtubeRequest.setOption("no-warnings");
+                Platform.runLater(() -> {
+                    try {prepareDownload(YoutubeDL.getVideoInfo(Url).title, i);}
+                    catch (YoutubeDLException e1) {prepareDownload("ERROR: Cannot get title youtube", i);}
+                    ((Label)((AnchorPane)LOG.getChildren().get(i)).getChildren().get(2)).setText("Running");});
                 try{
-                    YoutubeDL.execute(youtubeRequest, new DownloadProgressCallback() {
+                    YoutubeDL.execute(setOptionYoutubeRequest(Url, Where, settings.isMP4(), settings.isMP3()), new DownloadProgressCallback() {
                         @Override
                         public void onProgressUpdate(float progress, long etaInSeconds) {
                             Platform.runLater(() -> {
+                                ((Label)((AnchorPane)LOG.getChildren().get(i)).getChildren().get(2)).setText(String.valueOf(progress)+"%");
                                 ((ProgressBar)((AnchorPane)LOG.getChildren().get(i)).getChildren().get(1)).setProgress((progress/100));
                                 if(progress == 100.0) Platform.runLater(() -> ((Label)((AnchorPane)LOG.getChildren().get(i)).getChildren().get(2)).setText("Finishing"));
                             });
@@ -350,7 +385,7 @@ public class SecondaryController {
 
     @FXML
     void showSetting(MouseEvent eventHandler) throws IOException{
-        SettingCustomDialog settingCustomDialog = new SettingCustomDialog(Window.getWindows().stream().filter(Window::isShowing).findFirst().orElse(null));
+        SettingCustomDialog settingCustomDialog = new SettingCustomDialog(Window.getWindows().stream().filter(Window::isShowing).findFirst().orElse(null), settings);
         settingCustomDialog.showAndWait().ifPresent(result -> settings = result);
         settings.isMP3();
     }
@@ -365,7 +400,7 @@ public class SecondaryController {
             DownloadButton.setDisable(false);
             return;
         }else if(Save.getText().isBlank()){
-            Alert missingLink = new Alert(AlertType.WARNING, "Dictory is missing, please provide the link", ButtonType.OK);
+            Alert missingLink = new Alert(AlertType.WARNING, "Dictory is missing, where you gonna put the file?", ButtonType.OK);
             missingLink.show();
             DownloadButton.setDisable(false);
             return;
@@ -412,6 +447,9 @@ public class SecondaryController {
 
     @FXML
     void clearingVbox(ActionEvent event) throws IOException{
+        if(downloadWrapper != null || downloadWrapper.isRunning()){
+            downloadWrapper.cancel(true);
+        }
         LOG.getChildren().clear();
         howManyHasBeenDownloaded = 0;
     }

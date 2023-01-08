@@ -1,9 +1,12 @@
 module com.iseng.binarytree {
-    requires javafx.controls;
+    requires transitive javafx.controls;
     requires javafx.fxml;
-    requires transitive javafx.graphics;
+    requires java.prefs;
     requires com.fasterxml.jackson.annotation;
     requires com.fasterxml.jackson.databind;
+    requires org.bouncycastle.pkix;
+    requires org.bouncycastle.provider;
+
 
     
     opens com.iseng.binarytree to javafx.fxml, com.fasterxml.jackson.databind;

@@ -4,6 +4,7 @@ c:\FILES\JAVA\JAVA_APPLICATION\BINARY_TREE\binarytree\src\main\java\com\iseng\bi
 c:\FILES\JAVA\JAVA_APPLICATION\BINARY_TREE\binarytree\src\main\java\com\iseng\binarytree\mapper\VideoInfo.java
 c:\FILES\JAVA\JAVA_APPLICATION\BINARY_TREE\binarytree\src\main\java\com\iseng\binarytree\youtube\YoutubeDLException.java
 c:\FILES\JAVA\JAVA_APPLICATION\BINARY_TREE\binarytree\src\main\java\com\iseng\binarytree\utils\StreamProcessExtractor.java
+c:\FILES\JAVA\JAVA_APPLICATION\BINARY_TREE\binarytree\src\main\java\com\iseng\binarytree\Settings.java
 c:\FILES\JAVA\JAVA_APPLICATION\BINARY_TREE\binarytree\src\main\java\com\iseng\binarytree\mapper\HttpHeader.java
 c:\FILES\JAVA\JAVA_APPLICATION\BINARY_TREE\binarytree\src\main\java\com\iseng\binarytree\PrimaryController.java
 c:\FILES\JAVA\JAVA_APPLICATION\BINARY_TREE\binarytree\src\main\java\com\iseng\binarytree\youtube\YoutubeListInfo.java
@@ -11,8 +12,10 @@ c:\FILES\JAVA\JAVA_APPLICATION\BINARY_TREE\binarytree\src\main\java\module-info.
 c:\FILES\JAVA\JAVA_APPLICATION\BINARY_TREE\binarytree\src\main\java\com\iseng\binarytree\mapper\VideoThumbnail.java
 c:\FILES\JAVA\JAVA_APPLICATION\BINARY_TREE\binarytree\src\main\java\com\iseng\binarytree\youtube\YoutubeDLRequest.java
 c:\FILES\JAVA\JAVA_APPLICATION\BINARY_TREE\binarytree\src\main\java\com\iseng\binarytree\App.java
+c:\FILES\JAVA\JAVA_APPLICATION\BINARY_TREE\binarytree\src\main\java\com\iseng\binarytree\AdminChecker.java
 c:\FILES\JAVA\JAVA_APPLICATION\BINARY_TREE\binarytree\src\main\java\com\iseng\binarytree\mapper\VideoFormat.java
 c:\FILES\JAVA\JAVA_APPLICATION\BINARY_TREE\binarytree\src\main\java\com\iseng\binarytree\youtube\DownloadProgressCallback.java
 c:\FILES\JAVA\JAVA_APPLICATION\BINARY_TREE\binarytree\src\main\java\com\iseng\binarytree\youtube\YoutubeDLResponse.java
 c:\FILES\JAVA\JAVA_APPLICATION\BINARY_TREE\binarytree\src\main\java\com\iseng\binarytree\Properties.java
 c:\FILES\JAVA\JAVA_APPLICATION\BINARY_TREE\binarytree\src\main\java\com\iseng\binarytree\utils\StreamGobbler.java
+c:\FILES\JAVA\JAVA_APPLICATION\BINARY_TREE\binarytree\src\main\java\com\iseng\binarytree\SettingCustomDialog.java

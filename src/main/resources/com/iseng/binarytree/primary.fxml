@@ -13,7 +13,7 @@
       <AnchorPane>
          <children>
             <Label layoutX="4.0" text="Insert value:" />
-            <Button fx:id="primaryButton" layoutY="74.0" onAction="#switchToSecondary" prefHeight="25.0" prefWidth="204.0" text="Switch to Secondary View" />
+            <Button fx:id="primaryButton" layoutY="74.0" onAction="#switchToSecondary" prefHeight="25.0" prefWidth="204.0" text="Go to Youtube Downloader" />
             <Button fx:id="ADDBINARY" layoutY="44.0" mnemonicParsing="false" onAction="#addBinaryTree" prefHeight="25.0" prefWidth="55.0" text="ADD" />
             <Button layoutX="60.0" layoutY="44.0" mnemonicParsing="false" onAction="#showTree" text="SHOW TREE" />
             <TextField fx:id="BinaryTreeInput" layoutY="17.0" onKeyPressed="#onEnterPressed" prefHeight="25.0" prefWidth="204.0" />
