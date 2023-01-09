@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import com.iseng.binarytree.youtube.*;
 
@@ -19,7 +20,9 @@ import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.stage.DirectoryChooser;
+import javafx.stage.StageStyle;
 import javafx.stage.Window;
+import javafx.stage.WindowEvent;
 
 public class SecondaryController {
     @FXML
@@ -38,6 +41,7 @@ public class SecondaryController {
     //private final String SDICT = "C:\\FILES\\JAVA\\TEST_DOWNLOAD";
     @FXML
     private void initialize(){
+        Window.getWindows().stream().filter(Window::isShowing).findFirst().orElse(null).addEventFilter(WindowEvent.WINDOW_CLOSE_REQUEST, this::preventClosing);
         Link.setText(SURL);
         //Save.setText(SDICT);
     } 
@@ -112,7 +116,8 @@ public class SecondaryController {
             @Override
             public void handle(ActionEvent event){
                 int index = Integer.parseInt(newButton.getText().substring(8, 9));
-                listWorker.get(index).cancel(true);
+                if(listWorker.get((index % settings.getThread())).isRunning() && !newStatus.getText().equals("Preparing"))
+                    listWorker.get((index % settings.getThread())).cancel(true);
             }
         });
         newAnchor.getChildren().add(newButton);
@@ -173,7 +178,7 @@ public class SecondaryController {
                                                 @Override
                                                 public void onProgressUpdate(float progress, long etaInSeconds) {
                                                     Platform.runLater(() -> {
-                                                        if(downloadWrapper.isCancelled())listWorker.get(i).cancel();
+                                                        if(downloadWrapper.isCancelled())listWorker.get(j_).cancel();
                                                         ((ProgressBar)((AnchorPane)LOG.getChildren().get(i)).getChildren().get(1)).setProgress((progress/100));
                                                         ((Label)((AnchorPane)LOG.getChildren().get(i)).getChildren().get(2)).setText(String.valueOf(progress)+"%");
                                                         if(progress == 100.0)
@@ -280,7 +285,7 @@ public class SecondaryController {
 
     //For Playlist Sychronous Download
     private void syncPlaylistDownload(String Url, String Where) throws YoutubeDLException{
-        Task<Void> workHarder = new Task<Void>() {
+        downloadWrapper = new Task<Void>() {
             @Override
             protected Void call() throws Exception {
                 YoutubeListInfo finalshit = new YoutubeListInfo(YoutubeDL.getListVideoInfo(Url), YoutubeDL.getPlaylistUrl(Url));
@@ -332,16 +337,16 @@ public class SecondaryController {
                 return null;
             }
         };
-        new Thread(workHarder).start(); 
+        new Thread(downloadWrapper).start(); 
     }
 
     //For Single Url Synchorous Download
     private void syncDownload(String Url, String Where){
         disableWhileDownloading.setDisable(true);
         
-        Task<Boolean> downloadYoutube = new Task<Boolean>() {
+        downloadWrapper = new Task<Void>() {
             @Override
-            protected Boolean call() {
+            protected Void call() {
                 howManyHasBeenDownloaded++;
                 final int i = howManyHasBeenDownloaded-1;
                 //Perform download youtube video        
@@ -374,11 +379,11 @@ public class SecondaryController {
                         DownloadButton.setDisable(false);
                     });
                 }
-                return true;
+                return null;
             }
         };
 
-        Thread e = new Thread(downloadYoutube);
+        Thread e = new Thread(downloadWrapper);
         e.setName("youtubeDownload");
         e.start();
     }
@@ -455,7 +460,51 @@ public class SecondaryController {
     }
 
     @FXML
-    void switchToPrimary(ActionEvent event) throws IOException {
-        App.setRoot("primary");
+    void preventClosing(WindowEvent event) {
+        if(downloadWrapper.isRunning()){
+            Alert preventClosing = new Alert(AlertType.WARNING, "Still downloading, are you sure wanna dump them out?", ButtonType.YES);
+            preventClosing.getButtonTypes().add(ButtonType.CANCEL);
+            preventClosing.setTitle("Are you sure?");
+            preventClosing.initStyle(StageStyle.UNDECORATED);
+            Optional<ButtonType> result = preventClosing.showAndWait();
+            if(result.isPresent()){
+                if(result.get().equals(ButtonType.YES)){
+                    downloadWrapper.cancel(true);
+                    try {
+                        new Thread(() -> {
+                            for(Task<Void> worker: listWorker) while(worker.isRunning()){}
+                            Platform.exit();
+                        }).join();
+                    } catch (InterruptedException ignored) {}
+                }else{
+                    event.consume();
+                }
+            }
+        }
+    }
+
+    @FXML
+    void switchToPrimary(ActionEvent event) {
+        if(downloadWrapper.isRunning()){
+            Alert preventClosing = new Alert(AlertType.WARNING, "Still downloading, are you sure wanna dump them out?", ButtonType.YES);
+            preventClosing.getButtonTypes().add(ButtonType.CANCEL);
+            preventClosing.setTitle("Are you sure?");
+            preventClosing.initStyle(StageStyle.UNDECORATED);
+            Optional<ButtonType> result = preventClosing.showAndWait();
+            if(result.isPresent()){
+                if(result.get().equals(ButtonType.YES)){
+                    downloadWrapper.cancel(true);
+                    new Thread(() -> {
+                        for(Task<Void> worker: listWorker) while(!worker.isDone()){}
+                        try {
+                            App.setRoot("primary");
+                        } catch (IOException e) {e.printStackTrace();}
+                    }).start();
+                    
+                }else{
+                    event.consume();
+                }
+            }
+        }
     }
 }
