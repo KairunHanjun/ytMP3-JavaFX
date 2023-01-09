@@ -461,50 +461,56 @@ public class SecondaryController {
 
     @FXML
     void preventClosing(WindowEvent event) {
-        if(downloadWrapper.isRunning()){
-            Alert preventClosing = new Alert(AlertType.WARNING, "Still downloading, are you sure wanna dump them out?", ButtonType.YES);
-            preventClosing.getButtonTypes().add(ButtonType.CANCEL);
-            preventClosing.setTitle("Are you sure?");
-            preventClosing.initStyle(StageStyle.UNDECORATED);
-            Optional<ButtonType> result = preventClosing.showAndWait();
-            if(result.isPresent()){
-                if(result.get().equals(ButtonType.YES)){
-                    downloadWrapper.cancel(true);
-                    try {
-                        new Thread(() -> {
-                            for(Task<Void> worker: listWorker) while(worker.isRunning()){}
-                            Platform.exit();
-                        }).join();
-                    } catch (InterruptedException ignored) {}
-                }else{
-                    event.consume();
+        if(downloadWrapper != null){
+            if(downloadWrapper.isRunning()){
+                Alert preventClosing = new Alert(AlertType.WARNING, "Still downloading, are you sure wanna dump them out?", ButtonType.YES);
+                preventClosing.getButtonTypes().add(ButtonType.CANCEL);
+                preventClosing.setTitle("Are you sure?");
+                preventClosing.initStyle(StageStyle.UNDECORATED);
+                Optional<ButtonType> result = preventClosing.showAndWait();
+                if(result.isPresent()){
+                    if(result.get().equals(ButtonType.YES)){
+                        downloadWrapper.cancel(true);
+                        try {
+                            new Thread(() -> {
+                                for(Task<Void> worker: listWorker) while(worker.isRunning()){}
+                                Platform.exit();
+                            }).join();
+                        } catch (InterruptedException ignored) {}
+                    }else{
+                        event.consume();
+                    }
                 }
             }
-        }
+        }else{Platform.exit();}
     }
 
     @FXML
-    void switchToPrimary(ActionEvent event) {
-        if(downloadWrapper.isRunning()){
-            Alert preventClosing = new Alert(AlertType.WARNING, "Still downloading, are you sure wanna dump them out?", ButtonType.YES);
-            preventClosing.getButtonTypes().add(ButtonType.CANCEL);
-            preventClosing.setTitle("Are you sure?");
-            preventClosing.initStyle(StageStyle.UNDECORATED);
-            Optional<ButtonType> result = preventClosing.showAndWait();
-            if(result.isPresent()){
-                if(result.get().equals(ButtonType.YES)){
-                    downloadWrapper.cancel(true);
-                    new Thread(() -> {
-                        for(Task<Void> worker: listWorker) while(!worker.isDone()){}
-                        try {
-                            App.setRoot("primary");
-                        } catch (IOException e) {e.printStackTrace();}
-                    }).start();
-                    
-                }else{
-                    event.consume();
+    void switchToPrimary(ActionEvent event) throws IOException {
+        if(downloadWrapper != null){
+            if(downloadWrapper.isRunning()){
+                Alert preventClosing = new Alert(AlertType.WARNING, "Still downloading, are you sure wanna dump them out?", ButtonType.YES);
+                preventClosing.getButtonTypes().add(ButtonType.CANCEL);
+                preventClosing.setTitle("Are you sure?");
+                preventClosing.initStyle(StageStyle.UNDECORATED);
+                Optional<ButtonType> result = preventClosing.showAndWait();
+                if(result.isPresent()){
+                    if(result.get().equals(ButtonType.YES)){
+                        downloadWrapper.cancel(true);
+                        new Thread(() -> {
+                            for(Task<Void> worker: listWorker) while(!worker.isDone()){}
+                            try {
+                                App.setRoot("primary");
+                            } catch (IOException e) {e.printStackTrace();}
+                        }).start();
+                        
+                    }else{
+                        event.consume();
+                    }
                 }
             }
         }
+        App.setRoot("primary");
+        
     }
 }
